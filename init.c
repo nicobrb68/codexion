@@ -6,7 +6,7 @@
 /*   By: nbarbosa <nbarbosa@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/24 15:21:40 by nbarbosa          #+#    #+#             */
-/*   Updated: 2026/02/25 17:32:04 by nbarbosa         ###   ########.fr       */
+/*   Updated: 2026/02/26 16:16:12 by nbarbosa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ static void	init_coders(t_hub *hub)
 	{
 		hub->coders[i].id = i + 1;
 		hub->coders[i].hub = hub;
-		pthread_mutex_init(&hub->dongles[i], NULL);
+		pthread_mutex_init(&hub->dongles[i].mutex, NULL);
 		hub->coders[i].compile_count = 0;
 		hub->coders[i].last_compile = 0;
 		hub->coders[i].left_dongle = &hub->dongles[i];
@@ -36,7 +36,7 @@ int	init_hub(t_hub *hub, t_params *params)
 	hub->params = params;
 	hub->ready = 0;
 	hub->finished = 0;
-	hub->dongles = malloc(sizeof(pthread_mutex_t) * params->number_of_coders);
+	hub->dongles = malloc(sizeof(t_dongle) * params->number_of_coders);
 	if (!hub->dongles)
 		return (1);
 	hub->coders = malloc(sizeof(t_coder) * params->number_of_coders);
@@ -45,10 +45,18 @@ int	init_hub(t_hub *hub, t_params *params)
 		free(hub->dongles);
 		return (1);
 	}
+	hub->queue = malloc(sizeof(t_heap));
+	if (!hub->queue)
+	{
+		free(hub->dongles);
+		free(hub->coders);
+		return (1);
+    }
 	hub->queue->array = malloc(sizeof(t_coder *)
 			* hub->params->number_of_coders);
 	if (!hub->queue->array)
 	{
+		free(hub->queue);
 		free(hub->dongles);
 		free(hub->coders);
 		return (1);
@@ -57,5 +65,7 @@ int	init_hub(t_hub *hub, t_params *params)
 	init_coders(hub);
 	pthread_mutex_init(&hub->terminal_mutex, NULL);
 	pthread_mutex_init(&hub->red_button_mutex, NULL);
+	pthread_mutex_init(&hub->heap_mutex, NULL);
+    pthread_cond_init(&hub->cond, NULL);
 	return (0);
 }

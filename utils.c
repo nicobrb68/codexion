@@ -6,7 +6,7 @@
 /*   By: nbarbosa <nbarbosa@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/24 09:40:14 by nbarbosa          #+#    #+#             */
-/*   Updated: 2026/02/25 15:53:26 by nbarbosa         ###   ########.fr       */
+/*   Updated: 2026/02/26 16:06:45 by nbarbosa         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,7 +63,7 @@ static long long	ft_atol(char *str)
 	return (result * sign);
 }
 
-int	safe_atoi(char *str, unsigned int *nb)
+int	safe_atoi(char *str, int *nb)
 {
 	long long	value;
 
@@ -90,7 +90,7 @@ void	print_status(t_coder *coder, char *msg)
 
 	pthread_mutex_lock(&coder->hub->terminal_mutex);
 	timestamp = get_time() - coder->hub->start_chrono;
-	if (coder->hub->finished == 0)
+	if (check_if_finished(coder->hub) == 0)
 	{
 		printf("%lld %d %s\n", timestamp, coder->id, msg);
 	}
