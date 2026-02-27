@@ -14,9 +14,6 @@
 
 static int	arg_filter(int ac, char **av, t_params *params)
 {
-	int	i;
-
-	i = 0;
 	if (ac != 9)
 		return (1);
 	if (!safe_atoi(av[1], &params->number_of_coders)
