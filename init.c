@@ -22,6 +22,9 @@ static void	init_coders(t_hub *hub)
 		hub->coders[i].id = i + 1;
 		hub->coders[i].hub = hub;
 		pthread_mutex_init(&hub->dongles[i].mutex, NULL);
+        pthread_mutex_init(&hub->coders[i].coder_mutex, NULL);
+		hub->dongles[i].is_used = 0;
+        hub->dongles[i].available_at = 0;
 		hub->coders[i].compile_count = 0;
 		hub->coders[i].last_compile = 0;
 		hub->coders[i].left_dongle = &hub->dongles[i];

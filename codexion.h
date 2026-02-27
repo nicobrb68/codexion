@@ -47,6 +47,7 @@ typedef struct s_coder
 	int				compile_count;
 	long long		last_compile;
 	t_hub			*hub;
+	pthread_mutex_t	coder_mutex;
 	long long		request_time;
 }	t_coder;
 
@@ -93,5 +94,6 @@ void		heap_push(t_hub *hub, t_coder *new_coder);
 t_coder		*heap_pop(t_hub *hub);
 void		print_status(t_coder *coder, char *msg);
 int			check_if_finished(t_hub *hub);
+int			check_if_ready(t_hub *hub);
 
 #endif
