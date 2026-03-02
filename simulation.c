@@ -16,20 +16,30 @@ static	int	check_dongles(t_coder *coder)
 {
 	int			ready;
 	long long	now;
+	t_dongle	*first;
+	t_dongle	*second;
 
 	ready = 0;
 	now = get_time();
-	pthread_mutex_lock(&coder->left_dongle->mutex);
-	pthread_mutex_lock(&coder->right_dongle->mutex);
+
+	first = coder->left_dongle;
+	second = coder->right_dongle;
+	if (first > second)
+	{
+		first = coder->right_dongle;
+		second = coder->left_dongle;
+	}
+	pthread_mutex_lock(&first->mutex);
+	pthread_mutex_lock(&second->mutex);
 	if (coder->left_dongle->is_used == 0 && coder->right_dongle->is_used == 0)
 	{
 		if (now >= coder->left_dongle->available_at && now >= coder->right_dongle->available_at)
 			ready = 1;
 		else
 			ready = 2;
-    }
-	pthread_mutex_unlock(&coder->right_dongle->mutex);
-	pthread_mutex_unlock(&coder->left_dongle->mutex);
+	}
+	pthread_mutex_unlock(&second->mutex);
+	pthread_mutex_unlock(&first->mutex);
 	return (ready);
 }
 
@@ -39,27 +49,27 @@ static void	take_dongles(t_coder *coder)
 	coder->request_time = get_time();
 	heap_push(coder->hub, coder);
 	while (check_if_finished(coder->hub) == 0)
-    {
-        if (coder->hub->queue->array[0] == coder)
-        {
-            int status = check_dongles(coder);
-            if (status == 1)
-                break;
-            if (status == 2)
-            {
-                pthread_mutex_unlock(&coder->hub->heap_mutex);
-                usleep(1000); 
-                pthread_mutex_lock(&coder->hub->heap_mutex);
-                continue;
-            }
-        }
-        pthread_cond_wait(&coder->hub->cond, &coder->hub->heap_mutex);
-    }
-    if (check_if_finished(coder->hub))
-    {
-        pthread_mutex_unlock(&coder->hub->heap_mutex);
-        return;
-    }
+	{
+		if (coder->hub->queue->array[0] == coder)
+		{
+			int status = check_dongles(coder);
+			if (status == 1)
+				break;
+			if (status == 2)
+			{
+				pthread_mutex_unlock(&coder->hub->heap_mutex);
+				usleep(1000); 
+				pthread_mutex_lock(&coder->hub->heap_mutex);
+				continue;
+			}
+		}
+		pthread_cond_wait(&coder->hub->cond, &coder->hub->heap_mutex);
+	}
+	if (check_if_finished(coder->hub))
+	{
+		pthread_mutex_unlock(&coder->hub->heap_mutex);
+		return;
+	}
 	heap_pop(coder->hub);
 	pthread_mutex_lock(&coder->left_dongle->mutex);
 	coder->left_dongle->is_used = 1;
@@ -86,14 +96,17 @@ static int check_all_coders(t_hub *hub, int *finished_count)
 			pthread_mutex_lock(&hub->coders[i].coder_mutex);
 			last = hub->coders[i].last_compile;
 			count = hub->coders[i].compile_count;
-        	pthread_mutex_unlock(&hub->coders[i].coder_mutex);
+			pthread_mutex_unlock(&hub->coders[i].coder_mutex);
 			now = get_time();
 			if (now >= last + hub->params->time_to_burnout)
 			{
-				print_status(&hub->coders[i], "burned out");
+				pthread_mutex_lock(&hub->terminal_mutex);
 				pthread_mutex_lock(&hub->red_button_mutex);
 				hub->finished = 1;
 				pthread_mutex_unlock(&hub->red_button_mutex);
+				printf("%lld %d %s\n", get_time() - hub->start_chrono, 
+						hub->coders[i].id, "burned out");
+				pthread_mutex_unlock(&hub->terminal_mutex);
 				pthread_mutex_lock(&hub->heap_mutex);
 				pthread_cond_broadcast(&hub->cond);
 				pthread_mutex_unlock(&hub->heap_mutex);
@@ -110,7 +123,7 @@ static void	*solo_routine(t_coder *coder)
 	pthread_mutex_lock(&coder->left_dongle->mutex);
 	print_status(coder, "has taken a dongle");
 	while (check_if_finished(coder->hub) == 0)
-		continue ;
+		usleep(1000) ;
 	pthread_mutex_unlock(&coder->left_dongle->mutex);
 	return (NULL);
 }
@@ -121,7 +134,7 @@ void	*coder_routine(void *arg)
 	t_coder	*coder;
 
 	coder = (t_coder *)arg;
-	while (check_if_ready(coder->hub))
+	while (check_if_ready(coder->hub) == 0)
 		usleep(1000) ;
 	pthread_mutex_lock(&coder->coder_mutex);
     coder->last_compile = coder->hub->start_chrono;
@@ -134,7 +147,11 @@ void	*coder_routine(void *arg)
 		print_status(coder, "is compiling");
 		pthread_mutex_lock(&coder->coder_mutex);
 		coder->last_compile = get_time();
+		pthread_mutex_unlock(&coder->coder_mutex);
+
+
 		usleep(coder->hub->params->time_to_compile * 1000);
+		pthread_mutex_lock(&coder->coder_mutex);
 		coder->compile_count++;
 		pthread_mutex_unlock(&coder->coder_mutex);
 		release_dongles(coder);
@@ -154,7 +171,7 @@ void	*monitor_routine(void * arg)
 	coder_finished = 0;
 	hub = (t_hub *)arg;
 
-	while (check_if_ready(hub))
+	while (check_if_ready(hub) == 0)
 		usleep(50);	
 	while (coder_finished < hub->params->number_of_coders)
 	{
@@ -181,13 +198,8 @@ int start_simulation(t_hub *hub)
         pthread_create(&hub->coders[i].thread_id, NULL, coder_routine, &hub->coders[i]);
     }
     pthread_create(&hub->monitor, NULL, monitor_routine, hub);
-    hub->start_chrono = get_time();
-    i = -1;
-    while (++i < hub->params->number_of_coders)
-    {
-        hub->coders[i].last_compile = hub->start_chrono; 
-    }
 	pthread_mutex_lock(&hub->red_button_mutex);
+	hub->start_chrono = get_time();
     hub->ready = 1;
     pthread_mutex_unlock(&hub->red_button_mutex);
     i = -1;
