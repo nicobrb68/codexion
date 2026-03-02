@@ -35,30 +35,22 @@ static int	arg_filter(int ac, char **av, t_params *params)
 	return (0);
 }
 
-int main(int ac, char **av)
+int	main(int ac, char **av)
 {
-    t_params    params;
-    t_hub       hub;
+	t_params	params;
+	t_hub		hub;
 
-    // 1. On vérifie que le mec a bien tapé ses arguments
-    if (arg_filter(ac, av, &params))
-    {
-        printf("Invalid argument provided, End of program.\n");
-        return (1);
-    }
-    
-    // 2. On construit l'usine (les mallocs, les mutex, etc.)
-    if (init_hub(&hub, &params))
-    {
-        printf("Error: Failed to initialize the hub.\n");
-        return (1);
-    }
-    
-    // 3. On allume la machine et on attend que ça se termine
-    start_simulation(&hub);
-    
-    // 4. L'usine est fermée, on détruit tout proprement (0 leaks !)
-    free_hub(&hub);
-    
-    return (0);
+	if (arg_filter(ac, av, &params))
+	{
+		printf("Invalid argument provided, End of program.\n");
+		return (1);
+	}
+	if (init_hub(&hub, &params))
+	{
+		printf("Error: Failed to initialize the hub.\n");
+		return (1);
+	}
+	start_simulation(&hub);
+	free_hub(&hub);
+	return (0);
 }

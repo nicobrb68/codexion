@@ -26,7 +26,6 @@ void	free_hub(t_hub *hub)
 	int	i;
 
 	i = -1;
-
 	while (++i < hub->params->number_of_coders)
 	{
 		pthread_mutex_destroy(&hub->dongles[i].mutex);
@@ -38,26 +37,26 @@ void	free_hub(t_hub *hub)
 	pthread_cond_destroy(&hub->cond);
 	free(hub->queue->array);
 	free(hub->queue);
-    free(hub->coders);
-    free(hub->dongles);
+	free(hub->coders);
+	free(hub->dongles);
 }
 
-int check_if_finished(t_hub *hub)
+int	check_if_finished(t_hub *hub)
 {
 	int	status;
 
 	pthread_mutex_lock(&hub->red_button_mutex);
 	status = hub->finished;
-	pthread_mutex_unlock(&hub->red_button_mutex);   
+	pthread_mutex_unlock(&hub->red_button_mutex);
 	return (status);
 }
 
-int check_if_ready(t_hub *hub)
+int	check_if_ready(t_hub *hub)
 {
-    int status;
+	int	status;
 
-    pthread_mutex_lock(&hub->red_button_mutex);
-    status = hub->ready;
-    pthread_mutex_unlock(&hub->red_button_mutex);
-    return (status);
+	pthread_mutex_lock(&hub->red_button_mutex);
+	status = hub->ready;
+	pthread_mutex_unlock(&hub->red_button_mutex);
+	return (status);
 }

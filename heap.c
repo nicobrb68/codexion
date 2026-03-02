@@ -33,12 +33,14 @@ void	release_dongles(t_coder *coder)
 	now = get_time();
 	pthread_mutex_lock(&coder->left_dongle->mutex);
 	coder->left_dongle->is_used = 0;
-	coder->left_dongle->available_at = now + coder->hub->params->dongle_cooldown;
+	coder->left_dongle->available_at = now
+		+ coder->hub->params->dongle_cooldown;
 	pthread_mutex_unlock(&coder->left_dongle->mutex);
 	now = get_time();
 	pthread_mutex_lock(&coder->right_dongle->mutex);
 	coder->right_dongle->is_used = 0;
-	coder->right_dongle->available_at = now + coder->hub->params->dongle_cooldown;
+	coder->right_dongle->available_at = now
+		+ coder->hub->params->dongle_cooldown;
 	pthread_mutex_unlock(&coder->right_dongle->mutex);
 	pthread_mutex_lock(&coder->hub->heap_mutex);
 	pthread_cond_broadcast(&coder->hub->cond);
@@ -64,14 +66,11 @@ void	put_down(t_hub *hub, int index)
 			&& priority(hub->queue->array[index_right],
 				hub->queue->array[boss_index], hub->params))
 			boss_index = index_right;
-		if (boss_index != index)
-		{
-			swap_coders(&hub->queue->array[index],
-				&hub->queue->array[boss_index]);
-			index = boss_index;
-		}
-		else
+		if (boss_index == index)
 			break ;
+		swap_coders(&hub->queue->array[index],
+			&hub->queue->array[boss_index]);
+		index = boss_index;
 	}
 }
 
@@ -85,7 +84,7 @@ void	heap_push(t_hub *hub, t_coder *new_coder)
 	hub->queue->size++;
 	while (index > 0)
 	{
-		parent_index = (index -1) / 2;
+		parent_index = (index - 1) / 2;
 		if (priority(hub->queue->array[index], hub->queue->array[parent_index],
 				hub->params))
 		{

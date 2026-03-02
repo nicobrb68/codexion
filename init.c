@@ -22,9 +22,9 @@ static void	init_coders(t_hub *hub)
 		hub->coders[i].id = i + 1;
 		hub->coders[i].hub = hub;
 		pthread_mutex_init(&hub->dongles[i].mutex, NULL);
-        pthread_mutex_init(&hub->coders[i].coder_mutex, NULL);
+		pthread_mutex_init(&hub->coders[i].coder_mutex, NULL);
 		hub->dongles[i].is_used = 0;
-        hub->dongles[i].available_at = 0;
+		hub->dongles[i].available_at = 0;
 		hub->coders[i].compile_count = 0;
 		hub->coders[i].last_compile = 0;
 		hub->coders[i].left_dongle = &hub->dongles[i];
@@ -32,6 +32,30 @@ static void	init_coders(t_hub *hub)
 			= &hub->dongles[(i + 1) % hub->params->number_of_coders];
 		i++;
 	}
+}
+
+static int	init_queue(t_hub *hub)
+{
+	hub->queue = malloc(sizeof(t_heap));
+	if (!hub->queue)
+		return (1);
+	hub->queue->array = malloc(sizeof(t_coder *)
+			* hub->params->number_of_coders);
+	if (!hub->queue->array)
+	{
+		free(hub->queue);
+		return (1);
+	}
+	hub->queue->size = 0;
+	return (0);
+}
+
+static void	init_mutexes(t_hub *hub)
+{
+	pthread_mutex_init(&hub->terminal_mutex, NULL);
+	pthread_mutex_init(&hub->red_button_mutex, NULL);
+	pthread_mutex_init(&hub->heap_mutex, NULL);
+	pthread_cond_init(&hub->cond, NULL);
 }
 
 int	init_hub(t_hub *hub, t_params *params)
@@ -48,27 +72,13 @@ int	init_hub(t_hub *hub, t_params *params)
 		free(hub->dongles);
 		return (1);
 	}
-	hub->queue = malloc(sizeof(t_heap));
-	if (!hub->queue)
+	if (init_queue(hub))
 	{
-		free(hub->dongles);
-		free(hub->coders);
-		return (1);
-    }
-	hub->queue->array = malloc(sizeof(t_coder *)
-			* hub->params->number_of_coders);
-	if (!hub->queue->array)
-	{
-		free(hub->queue);
 		free(hub->dongles);
 		free(hub->coders);
 		return (1);
 	}
-	hub->queue->size = 0;
 	init_coders(hub);
-	pthread_mutex_init(&hub->terminal_mutex, NULL);
-	pthread_mutex_init(&hub->red_button_mutex, NULL);
-	pthread_mutex_init(&hub->heap_mutex, NULL);
-    pthread_cond_init(&hub->cond, NULL);
+	init_mutexes(hub);
 	return (0);
 }
